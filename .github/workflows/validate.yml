@@ -1,0 +1,93 @@
+name: Repository Structure Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-structure:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Validate docs folder exists
+      run: 
+        if [ ! -d "docs" ]; then
+          echo " Error: /docs folder does not exist"
+          exit 1
+        else
+          echo " /docs folder exists"
+        fi
+    
+    - name: Validate ERD file exists
+      run: |
+        if [ ! -f "docs/erd.png" ] && [ ! -f "docs/erd.pdf" ]; then
+          echo " \Error: ERD file (erd.png or erd.pdf) not found in /docs"
+          exit 1
+        else
+          echo "ERD file found"
+        fi
+    
+    - name: Validate API endpoints plan exists
+      run: 
+        if [ ! -f "docs/api-endpoints.md" ] && [ ! -f "docs/api-endpoints.pdf" ]; then
+          echo "\Error: API endpoints plan file not found in /docs"
+          exit 1
+        else
+          echo " API endpoints plan found"
+        fi
+    
+    - name: Validate SQL script exists
+      run: 
+        if [ ! -f "docs/database-schema.sql" ]; then
+          echo " Error: database-schema.sql not found in /docs"
+          exit 1
+        else
+          echo "SQL script found"
+        fi
+    
+    - name: Validate SQL script has minimum tables
+      run: 
+        TABLE_COUNT=$(grep -c "CREATE TABLE" docs/database-schema.sql || true)
+        if [ $TABLE_COUNT -lt 6 ]; then
+          echo " Error: SQL script has less than 6 CREATE TABLE statements (found $TABLE_COUNT)"
+          exit 1
+        else
+          echo " SQL script has $TABLE_COUNT tables (minimum 6 satisfied)"
+        fi
+    
+    - name: Validate SQL script has seed data
+      run: 
+        INSERT_COUNT=$(grep -c "INSERT INTO" docs/database-schema.sql || true)
+        if [ $INSERT_COUNT -lt 3 ]; then
+          echo " Error: SQL script has less than 3 INSERT statements"
+          exit 1
+        else
+          echo " SQL script has $INSERT_COUNT INSERT statements"
+        fi
+    
+    - name: Validate README.md exists
+      run: 
+        if [ ! -f "README.md" ]; then
+          echo "Error: README.md does not exist"
+          exit 1
+        else
+          echo " README.md exists"
+        fi
+    
+    - name: Count total files
+      run: 
+        echo " Repository structure validated successfully!"
+        echo "Total files: $(find . -type f -name '*.md' -o -name '*.sql' -o -name '*.png' -o -name '*.pdf' | wc -l)"
+    
+    - name: Summary
+      run: 
+        echo "## Validation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "All required files present" >> $GITHUB_STEP_SUMMARY
+        echo "SQL script meets requirements" >> $GITHUB_STEP_SUMMARY
+        echo "Repository structure is valid" >> $GITHUB_STEP_SUMMARY
